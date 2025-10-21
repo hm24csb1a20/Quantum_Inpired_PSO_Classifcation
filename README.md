@@ -5,6 +5,5 @@
 <summary>
 See the dataset attributes 
 </summary> -->
-
-![alt text](image.png)
+<img src="image.png" width="600">
 </details>
