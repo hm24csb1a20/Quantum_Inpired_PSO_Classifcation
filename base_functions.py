@@ -3,6 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 
+
 def intialize_population(rangest,rangeend,n):
     """
     making the population of 
@@ -11,4 +12,4 @@ def intialize_population(rangest,rangeend,n):
     """
     return np.random.randint(rangest,rangeend,size=n)
 
-def fitness_of_element()
+# def fitness_of_element()
