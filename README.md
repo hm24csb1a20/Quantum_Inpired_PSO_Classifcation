@@ -8,7 +8,7 @@ See the dataset attributes
 </summary> 
 <img src="./data/datasetattributes.png" width="600">
 </details>
-
+---
 ### Observations made of the data
 Based on the graphs in the `datavisulation.py` file the following observations were made
 1. failures > 3 `->` fail
