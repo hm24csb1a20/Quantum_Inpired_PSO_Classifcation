@@ -4,6 +4,6 @@
 <details> 
 <summary>
 See the dataset attributes 
-</summary> -->
-<img src="image.png" width="600">
+</summary> 
+<img src="./data/datasetattributes.png" width="600">
 </details>
