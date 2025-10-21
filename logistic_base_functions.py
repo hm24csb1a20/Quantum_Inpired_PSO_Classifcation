@@ -18,7 +18,7 @@ def fitness_function(X_train,Y_train,
                      golden_ratio = 1.618):
     
     """
-    compute fitness for a logistic regression (classifier) 
+    compute fitness of a single element for a logistic regression (classifier) 
     the element here is the feature map for the featrues to use
     """
     if(element!=None):
