@@ -1,6 +1,10 @@
 # Quantum_Inpired_PSO_Classifcation
 
 ## Phase 1:
+<details> 
+<summary>
+See the dataset attributes 
+</summary>
 ### Data set used in phase 1 contains the following attributes of vs marks
 1. school - student's school (binary: "GP" - Gabriel Pereira or "MS" - Mousinho da Silveira)\
 2. sex - student's sex (binary: "F" - female or "M" - male)\
@@ -35,3 +39,5 @@
 31. G1 - first period grade (numeric: from 0 to 20)
 32. G2 - second period grade (numeric: from 0 to 20)
 33. G3 - final grade (numeric: from 0 to 20, output target)
+
+</details>
