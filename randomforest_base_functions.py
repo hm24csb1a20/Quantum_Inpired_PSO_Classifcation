@@ -6,6 +6,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
 import os
 from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
 
 # global hyperparameters 
 alpha =0.7
@@ -42,7 +43,7 @@ def fitness_function(X_train,Y_train,
     acc = max(acc, 1e-10)  # prevent log(0)
     fitness = (
          alpha * np.log(acc)
-         - (1 - alpha) * (n_feat / np.sqrt(X_train.shape[1])) * acc * (1 + np.sin(golden_ratio))
+         - (1 - alpha) * (n_feat / np.sqrt(X_train.shape[1]))  * (1 + np.sin(golden_ratio))
     )
     return fitness,acc,n_feat
 
@@ -120,7 +121,7 @@ def qigpso_feature_selection(X_train,Y_train,
         fbest,fworst,_,_ = best_worst_fitness(fitnesses)
         Mi,Mbest,mi= computeMi_Mbest(fitnesses,fbest,fworst)
 
-        G = compute_gravity_force(max_iter,i,g0,alpha)
+        G = compute_gravity_force(max_iter, i, g0, alpha)
         omega= compute_omega(i,max_iter)
 
         # compute mean best position weighted by mi
@@ -144,9 +145,9 @@ def qigpso_feature_selection(X_train,Y_train,
         new_fitnesses= np.array([f[0]for f in new_fitness_raw])
         new_fitnesses = new_fitnesses.flatten() 
         # make random flips 
-        flip_prob = 0.05
-        rand_flip = np.random.rand(*new_population.shape) < flip_prob
-        new_population[rand_flip] = 1 - new_population[rand_flip]
+        # flip_prob = 0.05
+        # rand_flip = np.random.rand(*new_population.shape) < flip_prob
+        # new_population[rand_flip] = 1 - new_population[rand_flip]
 
 
         # make the changes wherever the fitness gets better
@@ -179,6 +180,8 @@ if __name__ =='__main__':
 
     # keep the DataFrame after one-hot encoding
     X = pd.get_dummies(X)  
+    scaler = StandardScaler()
+    X[X.select_dtypes(include=np.number).columns] = scaler.fit_transform(X.select_dtypes(include=np.number))
 
     # save the column names
     feature_names = X.columns  
@@ -186,7 +189,8 @@ if __name__ =='__main__':
     # now convert to numpy array for QIGPSO
     X_values = X.values
 
-    X_train, X_test, Y_train, Y_test = train_test_split(X_values, y, test_size=0.2, random_state=22)
+    X_train, X_test, Y_train, Y_test = train_test_split(X_values, y, test_size=0.2,
+                                                    random_state=22, stratify=y)
 
     best_features, best_fitness = qigpso_feature_selection(X_train, Y_train, X_test, Y_test,popsize,alpha,max_iter,g0)
     
@@ -202,6 +206,7 @@ if __name__ =='__main__':
 
     # doing the classificaton
     model = RandomForestClassifier(
+        n_estimators=200,
         random_state=42
     )
     model.fit(X_train_selected,Y_train)
