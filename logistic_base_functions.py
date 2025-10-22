@@ -101,6 +101,38 @@ def qigpso_feature_selection(X_train,Y_train,
     # this returns tuple of [fitness,acc,nfeatures] for all the data points
     fitnesses_raw_data = make_fitness_array(X_train,Y_train,X_test, Y_test,population)
     fitnesses = np.array(f[0] for f in fitnesses_raw_data)
+    fbest,fworst,best_idx, _ = best_worst_fitness(fitnesses)
+
+    pbest = population.copy()
+    pbest_fitness = fitnesses.copy()
+
+    gbest = population[best_idx].copy()
+    # to use in for loop 
+    gbest_fitness = fbest
+
+    for i in range(max_iter):
+        fbest,fworst,_,_ = best_worst_fitness(fitnesses)
+        Mi,Mbest,mi= computeMi_Mbest(max_iter,i,g0,alpha)
+
+        G = compute_gravity_force(max_iter,i,g0,alpha)
+        omega= compute_omega(i,max_iter)
+
+        # compute mean best position weighted by mi
+        mbest = np.sum(pbest * mi[:, np.newaxis], axis=0)
+
+        acc = compute_acc(population,pbest,mbest,omega)
+
+        # doing the quantum gravaiton position update 
+        # making some random data
+        rand_phase = np.random.rand(*population.shape)
+        # using gravtiation to change make the data converge
+        new_population = population + G * acc * (2 * rand_phase - 1)
+        # remvoign the data values which arent [0,1]
+        new_population = np.clip(new_population, 0, 1)
+        # make teh data a binary 0 or 1
+        new_population = (new_population > 0.5).astype(int)
+
+
 
 
 
