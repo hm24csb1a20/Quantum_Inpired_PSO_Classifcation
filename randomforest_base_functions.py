@@ -3,6 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn.metrics import accuracy_score
 from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import RandomForestClassifier
 import os
 from sklearn.model_selection import train_test_split
 
@@ -33,8 +34,8 @@ def fitness_function(X_train,Y_train,
         n_feat = np.sum(element)
     else:
         n_feat = X_train.shape[1] #the total no of columns
-    model = LogisticRegression(max_iter=int(1e9))
-    model.fit(X_train,Y_train)
+    model = RandomForestClassifier(n_estimators=25, max_depth=5, random_state=42)
+    model.fit(X_train, Y_train)
     Y_pred = model.predict(X_test)
     acc = accuracy_score(Y_test,Y_pred)
     acc = max(acc, 1e-10)  # prevent log(0)
@@ -95,9 +96,9 @@ def compute_gravity_force(max_iter,
 def qigpso_feature_selection(X_train,Y_train,
                              X_test,Y_test,
                              popsize =20, 
-                             alpha =0.8,
-                             max_iter=55,
-                             g0=9.8):
+                             alpha =0.1,
+                             max_iter=int(1e2),
+                             g0=35):
     
     n = X_train.shape[1]
     population = initialize_population(popsize,n)
@@ -118,13 +119,13 @@ def qigpso_feature_selection(X_train,Y_train,
         fbest,fworst,_,_ = best_worst_fitness(fitnesses)
         Mi,Mbest,mi= computeMi_Mbest(fitnesses,fbest,fworst)
 
-        G = compute_gravity_force(max_iter,i,g0,alpha)
+        G = g0
         omega= compute_omega(i,max_iter)
 
         # compute mean best position weighted by mi
         mbest = np.sum(pbest * mi[:, np.newaxis], axis=0)
 
-        acc = compute_acc(population,pbest,mbest,omega,mi)
+        acc = compute_acc(population,pbest,mbest,omega,mi)*3
 
         # doing the quantum gravaiton position update 
         # making some random data
@@ -134,13 +135,18 @@ def qigpso_feature_selection(X_train,Y_train,
         # remvoign the data values which arent [0,1]
         new_population = np.clip(new_population, 0, 1)
         # make teh data a binary 0 or 1
-        new_population = (new_population > 0.5).astype(int)
+        new_population = (new_population > 0.4).astype(int)
 
 
         # evaluating the fitness vales for this data
         new_fitness_raw = make_fitness_array(X_train, Y_train, X_test, Y_test, new_population)
         new_fitnesses= np.array([f[0]for f in new_fitness_raw])
         new_fitnesses = new_fitnesses.flatten() 
+        # make random flips 
+        flip_prob = 0.05
+        rand_flip = np.random.rand(*new_population.shape) < flip_prob
+        new_population[rand_flip] = 1 - new_population[rand_flip]
+
 
         # make the changes wherever the fitness gets better
         improved = new_fitnesses>pbest_fitness
@@ -161,24 +167,32 @@ def qigpso_feature_selection(X_train,Y_train,
     return gbest, gbest_fitness
 
 
-
 if __name__ =='__main__':
     current = os.getcwd()
     file_path = os.path.join(current, "data", "student-mat.csv")
     df = pd.read_csv(file_path, sep=';')  
     
-    # Separate features and target
+    # separate features and target
     X = df.drop(columns=['G3'])
     y = df['G3'].values
 
-    # Automatically convert all categorical columns to binary using one-hot encoding
-    X = pd.get_dummies(X)  # converts strings to 0/1 columns
+    # keep the DataFrame after one-hot encoding
+    X = pd.get_dummies(X)  
 
-    # Convert to numpy array for QIGPSO
-    X = X.values
+    # save the column names
+    feature_names = X.columns  
 
-    X_train, X_test, Y_train, Y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    # now convert to numpy array for QIGPSO
+    X_values = X.values
+
+    X_train, X_test, Y_train, Y_test = train_test_split(X_values, y, test_size=0.2, random_state=42)
 
     best_features, best_fitness = qigpso_feature_selection(X_train, Y_train, X_test, Y_test)
-    print("Best feature subset:", np.where(best_features == 1)[0])
-    print("Best fitness:", best_fitness)
+    
+    # mpa indices to column names
+    selected_feature_names = feature_names[np.where(best_features == 1)[0]]
+
+    # print the results
+    print("Best feature subset indices", np.where(best_features == 1)[0])
+    print("Best feature names", selected_feature_names)
+    print("Best fitness", best_fitness)
