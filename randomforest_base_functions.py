@@ -59,7 +59,7 @@ def fitness_function(X_train,Y_train,
 def make_fitness_array(X_train,Y_train,population):
     """
     to return the fitness of the entire population """
-    return np.array([fitness_function(X_train,Y_train,i) for i in population])
+    return np.array([fitness_function(X_train,Y_train,X_test, Y_test,i) for i in population])
 
 def best_worst_fitness(fitnesses):
     """return the best and the worst perfoming element fitness values and their indexes"""
@@ -74,8 +74,8 @@ def computeMi_Mbest(fitnesses,fbest,fworst):
     the best Mi 
     the best mi (normalized Mi)"""
     # the 1e-10 added to make sure if fbest==fworst no division by 10 error
-    Mi = np.array([abs(i - fbest) / ((fbest - fworst)+1e-10) for i in fitnesses])
-    mi = Mi / (np.sum(Mi)+1e-10)
+    Mi = np.array([abs(i - fbest) / ((fbest - fworst)+int(1e-10)) for i in fitnesses])
+    mi = Mi / np.sum(Mi)
     return Mi,max(Mi),mi
 
 def compute_omega(iteration, max_iter, omega_max=1.0, omega_min=0.4):
@@ -114,7 +114,7 @@ def qigpso_feature_selection(X_train,Y_train,
     n = X_train.shape[1]
     population = initialize_population(popsize,n)
     # this returns tuple of [fitness,acc,nfeatures] for all the data points
-    fitnesses_raw_data = make_fitness_array(X_train,Y_train,population)
+    fitnesses_raw_data = make_fitness_array(X_train,Y_train,X_test, Y_test,population)
     fitnesses = np.array([f[0] for f in fitnesses_raw_data])
     fitnesses = fitnesses.flatten() 
     fbest,fworst,best_idx, _ = best_worst_fitness(fitnesses)
@@ -148,12 +148,11 @@ def qigpso_feature_selection(X_train,Y_train,
         # make teh data a binary 0 or 1
         # changign the constant 0.5 to sigmoid
         sigmoid = 1 / (1 + np.exp(-new_population))
-        # now predicitng with probabities
-        new_population = (np.random.rand(*population.shape) < sigmoid).astype(int)
+        new_population = (np.random.rand(*population.shape) > sigmoid).astype(int)
 
 
         # evaluating the fitness vales for this data
-        new_fitness_raw = make_fitness_array(X_train, Y_train, new_population)
+        new_fitness_raw = make_fitness_array(X_train, Y_train, X_test, Y_test, new_population)
         new_fitnesses= np.array([f[0]for f in new_fitness_raw])
         new_fitnesses = new_fitnesses.flatten() 
         
