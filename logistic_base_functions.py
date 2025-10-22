@@ -85,7 +85,15 @@ def compute_gravity_force(max_iter,
                           g0 = 9.8,
                           alpha =0.8):
     return g0*np.exp(-1*alpha*i/max_iter)
-    
+
+def qigpso_feature_selection(X_train,Y_train,
+                             X_test,Y_test,
+                             popsize =20, 
+                             alpha =0.8,
+                             max_iter=55,
+                             g0=9.8):
+    populationo = initialize_population(popsize)
+    fintesses = make_fitness_array()
 
 if __name__ =='__main__':
     # 
