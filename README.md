@@ -6,7 +6,8 @@
 <summary>
 See the dataset attributes 
 </summary> 
-<img src="./data/datasetattributes.png" width="600">
+<img src="./data/datasetattributes.png" width="500
+">
 </details>
 
 ### Observations made of the data
@@ -17,3 +18,4 @@ Based on the graphs in the `datavisulation.py` file the following observations w
 4. absences >25 `->` fail
 5. G1 >= 14 `->` pass
 6. G2 >=14 `->` pass
+
