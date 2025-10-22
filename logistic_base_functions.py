@@ -48,8 +48,12 @@ def make_fitness_array(X_train,Y_train,X_test, Y_test,population):
     return np.array([fitness_function(X_train,Y_train,X_test, Y_test,i) for i in population])
 
 def best_worst_fitness(fitnesses):
-    """return the best and the worst perfoming element fitness values"""
-    return max(fitnesses),min(fitnesses)
+    """return the best and the worst perfoming element fitness values and their indexes"""
+    fbest = np.max(fitnesses)
+    fworst = np.min(fitnesses)
+    best_idx = np.argmax(fitnesses)
+    worst_idx = np.argmin(fitnesses)
+    return fbest, fworst, best_idx, worst_idx
 
 def computeMi_Mbest(fitnesses,fbest,fworst):
     """returns the array of masses of each elemnet
@@ -92,8 +96,13 @@ def qigpso_feature_selection(X_train,Y_train,
                              alpha =0.8,
                              max_iter=55,
                              g0=9.8):
-    populationo = initialize_population(popsize)
-    fintesses = make_fitness_array()
+    population = initialize_population(popsize)
+    n = X_train.shape[1]
+    # this returns tuple of [fitness,acc,nfeatures] for all the data points
+    fitnesses_raw_data = make_fitness_array(X_train,Y_train,X_test, Y_test,population)
+    fitnesses = np.array(f[0] for f in fitnesses_raw_data)
+
+
 
 if __name__ =='__main__':
     # 
