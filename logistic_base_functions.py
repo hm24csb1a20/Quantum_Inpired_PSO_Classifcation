@@ -3,6 +3,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn.metrics import accuracy_score
 from sklearn.linear_model import LogisticRegression
+import os
+from sklearn.model_selection import train_test_split
 
 # global hyperparameters 
 alpha =0.8
@@ -25,7 +27,7 @@ def fitness_function(X_train,Y_train,
     compute fitness of a single element for a logistic regression (classifier) 
     the element here is the feature map for the featrues to use
     """
-    if(element!=None):
+    if element is not None:
         X_train = X_train[:, element.astype(bool)]
         X_test = X_test[:, element.astype(bool)]
         n_feat = np.sum(element)
@@ -96,11 +98,13 @@ def qigpso_feature_selection(X_train,Y_train,
                              alpha =0.8,
                              max_iter=55,
                              g0=9.8):
-    population = initialize_population(popsize)
+    
     n = X_train.shape[1]
+    population = initialize_population(popsize,n)
     # this returns tuple of [fitness,acc,nfeatures] for all the data points
     fitnesses_raw_data = make_fitness_array(X_train,Y_train,X_test, Y_test,population)
-    fitnesses = np.array(f[0] for f in fitnesses_raw_data)
+    fitnesses = np.array([f[0] for f in fitnesses_raw_data])
+    fitnesses = fitnesses.flatten() 
     fbest,fworst,best_idx, _ = best_worst_fitness(fitnesses)
 
     pbest = population.copy()
@@ -112,7 +116,7 @@ def qigpso_feature_selection(X_train,Y_train,
 
     for i in range(max_iter):
         fbest,fworst,_,_ = best_worst_fitness(fitnesses)
-        Mi,Mbest,mi= computeMi_Mbest(max_iter,i,g0,alpha)
+        Mi,Mbest,mi= computeMi_Mbest(fitnesses,fbest,fworst)
 
         G = compute_gravity_force(max_iter,i,g0,alpha)
         omega= compute_omega(i,max_iter)
@@ -120,7 +124,7 @@ def qigpso_feature_selection(X_train,Y_train,
         # compute mean best position weighted by mi
         mbest = np.sum(pbest * mi[:, np.newaxis], axis=0)
 
-        acc = compute_acc(population,pbest,mbest,omega)
+        acc = compute_acc(population,pbest,mbest,omega,mi)
 
         # doing the quantum gravaiton position update 
         # making some random data
@@ -135,7 +139,8 @@ def qigpso_feature_selection(X_train,Y_train,
 
         # evaluating the fitness vales for this data
         new_fitness_raw = make_fitness_array(X_train, Y_train, X_test, Y_test, new_population)
-        new_fitnesses= np.array(f[0]for f in new_fitness_raw)
+        new_fitnesses= np.array([f[0]for f in new_fitness_raw])
+        new_fitnesses = new_fitnesses.flatten() 
 
         # make the changes wherever the fitness gets better
         improved = new_fitnesses>pbest_fitness
@@ -157,7 +162,23 @@ def qigpso_feature_selection(X_train,Y_train,
 
 
 
-
-
 if __name__ =='__main__':
-    # 
+    current = os.getcwd()
+    file_path = os.path.join(current, "data", "student-mat.csv")
+    df = pd.read_csv(file_path, sep=';')  
+    
+    # Separate features and target
+    X = df.drop(columns=['G3'])
+    y = df['G3'].values
+
+    # Automatically convert all categorical columns to binary using one-hot encoding
+    X = pd.get_dummies(X)  # converts strings to 0/1 columns
+
+    # Convert to numpy array for QIGPSO
+    X = X.values
+
+    X_train, X_test, Y_train, Y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+    best_features, best_fitness = qigpso_feature_selection(X_train, Y_train, X_test, Y_test)
+    print("Best feature subset:", np.where(best_features == 1)[0])
+    print("Best fitness:", best_fitness)
