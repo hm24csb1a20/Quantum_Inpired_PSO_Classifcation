@@ -10,7 +10,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import cross_val_score, StratifiedKFold
 
 # global hyperparameters 
-alpha =0.7
+alpha =0.8
 max_iter = int(1e3/2)
 g0=35
 popsize = 50
@@ -50,7 +50,7 @@ def fitness_function(X_train,Y_train,
     acc = max(acc, 1e-10)
     # to punish the higher accuracies less changing log to raised to 2
     fitness = (
-         alpha * np.log(acc)
+         alpha * np.log(acc+1e-3)
          - (1 - alpha) * (n_feat / np.sqrt(X_train.shape[1]))  * (1 + np.sin(golden_ratio))
     )
     # fitness = alpha * np.log(acc) - (1 - alpha) * (n_feat / np.sqrt(X_train.shape[1])) * (1 + np.sin(golden_ratio))
@@ -74,7 +74,7 @@ def computeMi_Mbest(fitnesses,fbest,fworst):
     the best Mi 
     the best mi (normalized Mi)"""
     # the 1e-10 added to make sure if fbest==fworst no division by 10 error
-    Mi = np.array([abs(i - fbest) / ((fbest - fworst)+int(1e-10)) for i in fitnesses])
+    Mi = np.array([(i - fbest) / ((fbest - fworst)+(1e-10)) for i in fitnesses])
     mi = Mi / np.sum(Mi)
     return Mi,max(Mi),mi
 
