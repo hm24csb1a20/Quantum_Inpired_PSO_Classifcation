@@ -119,7 +119,7 @@ def qigpso_feature_selection(X_train,Y_train,
         fbest,fworst,_,_ = best_worst_fitness(fitnesses)
         Mi,Mbest,mi= computeMi_Mbest(fitnesses,fbest,fworst)
 
-        G = g0
+        G = compute_gravity_force(max_iter,i,g0,alpha)
         omega= compute_omega(i,max_iter)
 
         # compute mean best position weighted by mi
@@ -191,8 +191,20 @@ if __name__ =='__main__':
     
     # mpa indices to column names
     selected_feature_names = feature_names[np.where(best_features == 1)[0]]
+    X_train_selected = X_train[:, best_features == 1]
+    X_test_selected = X_test[:, best_features == 1]
 
     # print the results
     print("Best feature subset indices", np.where(best_features == 1)[0])
     print("Best feature names", selected_feature_names)
     print("Best fitness", best_fitness)
+
+    # doing the classificaton
+    model = RandomForestClassifier(
+        random_state=42
+    )
+    model.fit(X_train_selected,Y_train)
+    Y_pred = model.predict(X_test_selected)
+    acc = accuracy_score(Y_test,Y_pred)
+
+    print(acc)
