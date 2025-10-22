@@ -16,7 +16,7 @@ g0=35
 popsize = 50
 # make random flips 
 flip_prob = 0.04
-RANDOM_SEED = 42 
+RANDOM_SEED = 23
 
 def initialize_population(popsize,n):
     """makes the poulation of popsize 
@@ -50,9 +50,10 @@ def fitness_function(X_train,Y_train,
     acc = max(acc, 1e-10)
     # to punish the higher accuracies less changing log to raised to 2
     fitness = (
-         alpha * (acc**2)
+         alpha * np.log(acc)
          - (1 - alpha) * (n_feat / np.sqrt(X_train.shape[1]))  * (1 + np.sin(golden_ratio))
     )
+    # fitness = alpha * np.log(acc) - (1 - alpha) * (n_feat / np.sqrt(X_train.shape[1])) * (1 + np.sin(golden_ratio))
     return fitness,acc,n_feat
 
 def make_fitness_array(X_train,Y_train,population):
@@ -73,7 +74,7 @@ def computeMi_Mbest(fitnesses,fbest,fworst):
     the best Mi 
     the best mi (normalized Mi)"""
     # the 1e-10 added to make sure if fbest==fworst no division by 10 error
-    Mi = np.array([(i - fbest) / ((fbest - fworst)+1e-10) for i in fitnesses])
+    Mi = np.array([abs(i - fbest) / ((fbest - fworst)+1e-10) for i in fitnesses])
     mi = Mi / (np.sum(Mi)+1e-10)
     return Mi,max(Mi),mi
 
