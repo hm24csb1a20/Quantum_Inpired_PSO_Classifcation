@@ -59,7 +59,7 @@ def fitness_function(X_train,Y_train,
 def make_fitness_array(X_train,Y_train,population):
     """
     to return the fitness of the entire population """
-    return np.array([fitness_function(X_train,Y_train,X_test, Y_test,i) for i in population])
+    return np.array([fitness_function(X_train,Y_train,i) for i in population])
 
 def best_worst_fitness(fitnesses):
     """return the best and the worst perfoming element fitness values and their indexes"""
@@ -114,7 +114,7 @@ def qigpso_feature_selection(X_train,Y_train,
     n = X_train.shape[1]
     population = initialize_population(popsize,n)
     # this returns tuple of [fitness,acc,nfeatures] for all the data points
-    fitnesses_raw_data = make_fitness_array(X_train,Y_train,X_test, Y_test,population)
+    fitnesses_raw_data = make_fitness_array(X_train,Y_train,population)
     fitnesses = np.array([f[0] for f in fitnesses_raw_data])
     fitnesses = fitnesses.flatten() 
     fbest,fworst,best_idx, _ = best_worst_fitness(fitnesses)
@@ -152,7 +152,7 @@ def qigpso_feature_selection(X_train,Y_train,
 
 
         # evaluating the fitness vales for this data
-        new_fitness_raw = make_fitness_array(X_train, Y_train, X_test, Y_test, new_population)
+        new_fitness_raw = make_fitness_array(X_train, Y_train,  new_population)
         new_fitnesses= np.array([f[0]for f in new_fitness_raw])
         new_fitnesses = new_fitnesses.flatten() 
         
