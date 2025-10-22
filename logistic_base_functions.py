@@ -55,11 +55,11 @@ def computeMi_Mbest(fitnesses,fbest,fworst):
     mi = Mi / np.sum(Mi)
     return Mi,max(Mi),mi
 
-def computeOmega(iteration, max_iter, omega_max=1.0, omega_min=0.4):
+def compute_omega(iteration, max_iter, omega_max=1.0, omega_min=0.4):
     """linearly decaying omega (inertia/contraction factor)"""
     return omega_max - (omega_max - omega_min) * (iteration / max_iter)
 
-def computeAcceleration(population, pbest, mbest, omega, mi):
+def compute_acc(population, pbest, mbest, omega, mi):
     r1 = np.random.rand(*population.shape)
     r2 = np.random.rand(*population.shape)
 
@@ -69,6 +69,12 @@ def computeAcceleration(population, pbest, mbest, omega, mi):
     acceleration = (term1 + term2) * mi[:, np.newaxis]  # scale by normalized mass
     return acceleration
 
+def compute_distance_matrix(population):
+    """computer pairwise distance matrix between all particles."""
+    diff = population[:, np.newaxis, :] - population[np.newaxis, :, :]
+    # just some fancy math to calcuate euclidean distance 
+    R = np.linalg.norm(diff, axis=2)
+    return R
 
 
 if __name__ =='__main__':
