@@ -14,6 +14,9 @@ alpha =0.7
 max_iter = int(1e3/2)
 g0=35
 popsize = 50
+# make random flips 
+flip_prob = 0.04
+RANDOM_SEED = 42 
 
 def initialize_population(popsize,n):
     """makes the poulation of popsize 
@@ -39,14 +42,15 @@ def fitness_function(X_train,Y_train,
         n_feat = X_train.shape[1] #the total no of columns
     
     # model = RandomForestClassifier(n_estimators=75, max_depth=None, random_state=2)
-    model = LogisticRegression(solver='liblinear', random_state=2)
-    skf = StratifiedKFold(n_splits=3, shuffle=True, random_state=76)
+    model = LogisticRegression(solver='liblinear', random_state=RANDOM_SEED)
+    skf = StratifiedKFold(n_splits=3, shuffle=True, random_state=RANDOM_SEED)
     accuracies = cross_val_score(model, X_train_subset, Y_train, cv=skf, scoring='accuracy')
     acc = np.mean(accuracies) # Use the average accuracy
 
     acc = max(acc, 1e-10)
+    # to punish the higher accuracies less changing log to raised to 2
     fitness = (
-         alpha * np.log(acc)
+         alpha * (acc**2)
          - (1 - alpha) * (n_feat / np.sqrt(X_train.shape[1]))  * (1 + np.sin(golden_ratio))
     )
     return fitness,acc,n_feat
@@ -70,7 +74,7 @@ def computeMi_Mbest(fitnesses,fbest,fworst):
     the best mi (normalized Mi)"""
     # the 1e-10 added to make sure if fbest==fworst no division by 10 error
     Mi = np.array([(i - fbest) / ((fbest - fworst)+1e-10) for i in fitnesses])
-    mi = Mi / np.sum(Mi)
+    mi = Mi / (np.sum(Mi)+1e-10)
     return Mi,max(Mi),mi
 
 def compute_omega(iteration, max_iter, omega_max=1.0, omega_min=0.4):
@@ -151,8 +155,7 @@ def qigpso_feature_selection(X_train,Y_train,
         new_fitness_raw = make_fitness_array(X_train, Y_train, new_population)
         new_fitnesses= np.array([f[0]for f in new_fitness_raw])
         new_fitnesses = new_fitnesses.flatten() 
-        # make random flips 
-        flip_prob = 0.02
+        
         rand_flip = np.random.rand(*new_population.shape) < flip_prob
         new_population[rand_flip] = 1 - new_population[rand_flip]
 
@@ -177,6 +180,7 @@ def qigpso_feature_selection(X_train,Y_train,
 
 
 if __name__ =='__main__':
+    np.random.seed(RANDOM_SEED)
     current = os.getcwd()
     file_path = os.path.join(current, "data", "student-mat.csv")
     df = pd.read_csv(file_path, sep=';')  
@@ -214,7 +218,7 @@ if __name__ =='__main__':
     # doing the classificaton
     model = RandomForestClassifier(
         n_estimators=200,
-        random_state=55
+        random_state=RANDOM_SEED
     )
     model.fit(X_train_selected,Y_train)
     Y_pred = model.predict(X_test_selected)
