@@ -8,9 +8,10 @@ import os
 from sklearn.model_selection import train_test_split
 
 # global hyperparameters 
-alpha =0.8
-max_iter = 1e9
-g0=9.8
+alpha =0.7
+max_iter = int(1e3/2)
+g0=35
+popsize = 30
 
 def initialize_population(popsize,n):
     """makes the poulation of popsize 
@@ -34,7 +35,7 @@ def fitness_function(X_train,Y_train,
         n_feat = np.sum(element)
     else:
         n_feat = X_train.shape[1] #the total no of columns
-    model = RandomForestClassifier(n_estimators=25, max_depth=5, random_state=42)
+    model = RandomForestClassifier(n_estimators=75, max_depth=None, random_state=34)
     model.fit(X_train, Y_train)
     Y_pred = model.predict(X_test)
     acc = accuracy_score(Y_test,Y_pred)
@@ -174,7 +175,7 @@ if __name__ =='__main__':
     
     # separate features and target
     X = df.drop(columns=['G3'])
-    y = df['G3'].values
+    y = (df['G3'] >= 10).astype(int)
 
     # keep the DataFrame after one-hot encoding
     X = pd.get_dummies(X)  
@@ -185,9 +186,9 @@ if __name__ =='__main__':
     # now convert to numpy array for QIGPSO
     X_values = X.values
 
-    X_train, X_test, Y_train, Y_test = train_test_split(X_values, y, test_size=0.2, random_state=42)
+    X_train, X_test, Y_train, Y_test = train_test_split(X_values, y, test_size=0.2, random_state=22)
 
-    best_features, best_fitness = qigpso_feature_selection(X_train, Y_train, X_test, Y_test)
+    best_features, best_fitness = qigpso_feature_selection(X_train, Y_train, X_test, Y_test,popsize,alpha,max_iter,g0)
     
     # mpa indices to column names
     selected_feature_names = feature_names[np.where(best_features == 1)[0]]
