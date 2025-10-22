@@ -133,6 +133,29 @@ def qigpso_feature_selection(X_train,Y_train,
         new_population = (new_population > 0.5).astype(int)
 
 
+        # evaluating the fitness vales for this data
+        new_fitness_raw = make_fitness_array(X_train, Y_train, X_test, Y_test, new_population)
+        new_fitnesses= np.array(f[0]for f in new_fitness_raw)
+
+        # make the changes wherever the fitness gets better
+        improved = new_fitnesses>pbest_fitness
+        pbest[improved] = new_population[improved]
+        pbest_fitness[improved] = new_fitnesses[improved]
+
+        # to make a gbest update 
+        new_gbest_idx = np.argmax(new_fitnesses)
+        if new_fitnesses[new_gbest_idx] > gbest_fitness:
+            gbest_fitness = new_fitnesses[new_gbest_idx]
+            gbest = new_population[new_gbest_idx].copy()
+
+        population=new_population
+        fitnesses=new_fitnesses
+
+        if i % 10 == 0 or i == max_iter - 1:
+            print(f"Iter {i+1}/{max_iter} | Best Fitness: {gbest_fitness:.5f}")
+    return gbest, gbest_fitness
+
+
 
 
 
