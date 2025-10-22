@@ -37,3 +37,38 @@ $$
 #### 3. Determine Best/Worst Fitness and Mass
 The fitness values are used to calculate the **inertial mass ($\text{Mi}$)** and **normalized mass ($\text{mi}$)** for each particle.
 
+$$
+\text{Mi}_i = \frac{\text{f}_i - \text{f}_{\text{best}}}{\text{f}_{\text{best}} - \text{f}_{\text{worst}} + \epsilon}
+\quad \text{and} \quad
+\text{mi}_i = \frac{\text{Mi}_i}{\sum_{j} \text{Mi}_j + \epsilon}
+$$
+- The mass is calculated relative to the **global best fitness ($\text{f}_{\text{best}}$)**, meaning particles with higher fitness exert less "pull" on the population (as they are already near the target).
+
+#### 4. Gravitational Constant (G) and Inertia Weight ($\omega$)
+
+These control the exploration ability of the algorithm across iterations ($i$).
+- **Gravitational Constant ($\mathbf{G}$):** Decays exponentially, decreasing the gravitational influence over time to favor local search (exploitation).
+$$
+G(i) = G_0 \exp\left(-\alpha \frac{i}{\text{max\_iter}}\right)
+$$
+- **Inertia Weight ($\mathbf{\omega}$):** Decays linearly from $\omega_{\text{max}}$ to $\omega_{\text{min}}$, balancing exploration vs. exploitation in the $\text{PSO}$ component.
+
+#### 5. Position Update (Quantum-Inspired Step)
+
+Particles update their positions based on an **acceleration ($\mathbf{\text{acc}}$)** term, which combines the influence of the particle's best position ($\text{pbest}$) and the mean best position of the population ($\text{mbest}$). The update has a quantum-inspired nature, using a probabilistic approach to generate a new binary position:
+
+1.  **Calculate Acceleration:** $\mathbf{\text{acc}}$ is computed based on $\text{pbest}$ and $\text{mbest}$, scaled by $\text{mi}$ and $\omega$.
+2.  **Continuous Position Update:** The current position ($\mathbf{x}_i$) is updated in continuous space:
+    $$
+    \mathbf{x}_{\text{new}} = \mathbf{x}_i + G \cdot \mathbf{\text{acc}} \cdot (\text{Random Phase})
+    $$
+3.  **Probabilistic Binarization (Quantization):** The continuous position is converted into a probability using the **Sigmoid function**. This probability determines if the new feature is '1' (selected) or '0' (unselected).
+    $$
+    P(\text{feature} = 1) = \frac{1}{1 + e^{-\mathbf{x}_{\text{new}}}}
+    $$
+4.  **Random Flips (Perturbation):** A small random flip probability ($\text{flip\_prob}=0.04$) is applied to introduce necessary diversity and help escape local optima.
+
+#### 6. Update $\text{pbest}$ and $\text{gbest}$
+The fitness of the $\text{new\_population}$ is evaluated.
+- A particle's **personal best ($\text{pbest}$)** is updated if the new position has a better fitness.
+- The **global best ($\text{gbest}$)** position is updated if any particle finds a solution better than the current $\text{gbest}$.
