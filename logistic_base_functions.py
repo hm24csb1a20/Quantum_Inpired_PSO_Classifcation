@@ -48,8 +48,12 @@ def make_fitness_array(X_train,Y_train,X_test, Y_test,population):
     return np.array([fitness_function(X_train,Y_train,X_test, Y_test,i) for i in population])
 
 def best_worst_fitness(fitnesses):
-    """return the best and the worst perfoming element fitness values"""
-    return max(fitnesses),min(fitnesses)
+    """return the best and the worst perfoming element fitness values and their indexes"""
+    fbest = np.max(fitnesses)
+    fworst = np.min(fitnesses)
+    best_idx = np.argmax(fitnesses)
+    worst_idx = np.argmin(fitnesses)
+    return fbest, fworst, best_idx, worst_idx
 
 def computeMi_Mbest(fitnesses,fbest,fworst):
     """returns the array of masses of each elemnet
@@ -92,8 +96,68 @@ def qigpso_feature_selection(X_train,Y_train,
                              alpha =0.8,
                              max_iter=55,
                              g0=9.8):
-    populationo = initialize_population(popsize)
-    fintesses = make_fitness_array()
+    population = initialize_population(popsize)
+    n = X_train.shape[1]
+    # this returns tuple of [fitness,acc,nfeatures] for all the data points
+    fitnesses_raw_data = make_fitness_array(X_train,Y_train,X_test, Y_test,population)
+    fitnesses = np.array(f[0] for f in fitnesses_raw_data)
+    fbest,fworst,best_idx, _ = best_worst_fitness(fitnesses)
+
+    pbest = population.copy()
+    pbest_fitness = fitnesses.copy()
+
+    gbest = population[best_idx].copy()
+    # to use in for loop 
+    gbest_fitness = fbest
+
+    for i in range(max_iter):
+        fbest,fworst,_,_ = best_worst_fitness(fitnesses)
+        Mi,Mbest,mi= computeMi_Mbest(max_iter,i,g0,alpha)
+
+        G = compute_gravity_force(max_iter,i,g0,alpha)
+        omega= compute_omega(i,max_iter)
+
+        # compute mean best position weighted by mi
+        mbest = np.sum(pbest * mi[:, np.newaxis], axis=0)
+
+        acc = compute_acc(population,pbest,mbest,omega)
+
+        # doing the quantum gravaiton position update 
+        # making some random data
+        rand_phase = np.random.rand(*population.shape)
+        # using gravtiation to change make the data converge
+        new_population = population + G * acc * (2 * rand_phase - 1)
+        # remvoign the data values which arent [0,1]
+        new_population = np.clip(new_population, 0, 1)
+        # make teh data a binary 0 or 1
+        new_population = (new_population > 0.5).astype(int)
+
+
+        # evaluating the fitness vales for this data
+        new_fitness_raw = make_fitness_array(X_train, Y_train, X_test, Y_test, new_population)
+        new_fitnesses= np.array(f[0]for f in new_fitness_raw)
+
+        # make the changes wherever the fitness gets better
+        improved = new_fitnesses>pbest_fitness
+        pbest[improved] = new_population[improved]
+        pbest_fitness[improved] = new_fitnesses[improved]
+
+        # to make a gbest update 
+        new_gbest_idx = np.argmax(new_fitnesses)
+        if new_fitnesses[new_gbest_idx] > gbest_fitness:
+            gbest_fitness = new_fitnesses[new_gbest_idx]
+            gbest = new_population[new_gbest_idx].copy()
+
+        population=new_population
+        fitnesses=new_fitnesses
+
+        if i % 10 == 0 or i == max_iter - 1:
+            print(f"Iter {i+1}/{max_iter} | Best Fitness: {gbest_fitness:.5f}")
+    return gbest, gbest_fitness
+
+
+
+
 
 if __name__ =='__main__':
     # 
