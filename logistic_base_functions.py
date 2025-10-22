@@ -4,6 +4,10 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import accuracy_score
 from sklearn.linear_model import LogisticRegression
 
+# global hyperparameters 
+alpha =0.8
+max_iter = 1e9
+g0=9.8
 
 def initialize_population(popsize,n):
     """makes the poulation of popsize 
@@ -76,6 +80,12 @@ def compute_distance_matrix(population):
     R = np.linalg.norm(diff, axis=2)
     return R
 
+def compute_gravity_force(max_iter,
+                           i ,
+                          g0 = 9.8,
+                          alpha =0.8):
+    return g0*np.exp(-1*alpha*i/max_iter)
+    
 
 if __name__ =='__main__':
     # 
