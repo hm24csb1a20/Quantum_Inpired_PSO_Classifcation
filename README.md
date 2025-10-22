@@ -34,6 +34,10 @@ $$
 \text{f} = \alpha \log(\text{acc}) - (1 - \alpha) \frac{\text{n\_feat}}{\sqrt{N}} (1 + \sin(\phi))
 $$
 
+Set FITNESS_MODE = 'exploit' to push the search toward high-accuracy subsets (more exploitation). Consider raising alpha to 0.85-0.95 for even stronger exploitation.
+
+Set FITNESS_MODE = 'explore' to encourage exploration and diverse subsets (entropy bonus). Consider lowering alpha to 0.55-0.7 here.
+
 #### 3. Determine Best/Worst Fitness and Mass
 The fitness values are used to calculate the **inertial mass ($\text{Mi}$)** and **normalized mass ($\text{mi}$)** for each particle.
 
