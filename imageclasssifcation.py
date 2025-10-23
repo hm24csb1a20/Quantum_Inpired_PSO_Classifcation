@@ -56,7 +56,7 @@ def make_csv(folder):
     df.to_csv(properpathofcsv,index=False)
     print(f"{folder}_path.csv created")
 
-def train_binary_classifier(folder_a, folder_b, epochs=10, batch_size=16, random_seed=42):
+def imageclassifer(folder_a, folder_b, epochs=10, batch_size=16, random_seed=42):
     """
     folder_a, folder_b: folder names under ./data/
     returns test accuracy
