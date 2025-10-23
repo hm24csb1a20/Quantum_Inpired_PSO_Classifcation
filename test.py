@@ -12,6 +12,7 @@ from sklearn.model_selection import cross_val_score
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score
 from sklearn.preprocessing import LabelEncoder
+from sklearn.linear_model import LogisticRegression
 
 
 
@@ -20,10 +21,7 @@ from sklearn.preprocessing import LabelEncoder
 # -------------------
 def initialize_population(popsize, n):
     return np.random.randint(0, 2, size=(popsize, n))
-# The original model in fitness_function:
-# model = RandomForestClassifier(n_estimators=75, random_state=random_seed)
 
-# Assuming you have the helper function create_nn_classifier defined as before
 def create_nn_classifier(input_dim, random_seed):
     tf.random.set_seed(random_seed)
     model = models.Sequential([
@@ -52,20 +50,16 @@ def fitness_function(X, y, element, alpha=0.8, golden_ratio=1.618, random_seed=4
         X_subset, y, test_size=0.2, random_state=random_seed, stratify=y
     )
     
-    # 2. Create and train the NN model once
-    model = create_nn_classifier(X_train_fit.shape[1], random_seed)
+    # 2. Create and train the FAST classifier (Random Forest)
+    # 🛑 FIX: Use RandomForestClassifier for much faster evaluation
+    model = LogisticRegression(solver='liblinear', random_state=random_seed)
     
-    # Train the model (verbose=0 for clean output)
-    model.fit(
-        X_train_fit, y_train_fit, 
-        epochs=15, 
-        batch_size=32,
-        validation_data=(X_val_fit, y_val_fit),
-        verbose=0
-    )
+    # Train the model 
+    model.fit(X_train_fit, y_train_fit)
     
     # 3. Evaluate on the validation set
-    _, acc_raw = model.evaluate(X_val_fit, y_val_fit, verbose=0)
+    y_pred = model.predict(X_val_fit)
+    acc_raw = accuracy_score(y_val_fit, y_pred) # Calculate accuracy
     
     # Ensure acc is not zero for log
     acc = max(acc_raw, 1e-10) 
@@ -76,9 +70,8 @@ def fitness_function(X, y, element, alpha=0.8, golden_ratio=1.618, random_seed=4
                
     return fitness, acc_raw, n_feat # return the raw accuracy
     
-
-
-def make_fitness_array(X, y, population):
+def make_fitness_array(X, y, population, current_iter=None):
+    # This is much faster than an explicit loop with print statements
     return np.array([fitness_function(X, y, ind) for ind in population])
 
 def best_worst_fitness(fitnesses):
@@ -135,6 +128,7 @@ def qigpso_feature_selection(X, y, popsize=20, alpha=0.8, max_iter=100, g0=35, f
         
         rand_flip = np.random.rand(*new_population.shape) < flip_prob
         new_population[rand_flip] = 1 - new_population[rand_flip]
+
         
         new_fitness_raw = make_fitness_array(X, y, new_population)
         new_fitnesses = np.array([f[0] for f in new_fitness_raw]).flatten()
@@ -147,12 +141,14 @@ def qigpso_feature_selection(X, y, popsize=20, alpha=0.8, max_iter=100, g0=35, f
         if new_fitnesses[new_gbest_idx] > gbest_fitness:
             gbest_fitness = new_fitnesses[new_gbest_idx]
             gbest = new_population[new_gbest_idx].copy()
+            # 🛑 UPDATE: Store current best metrics when gbest is updated
+            best_acc = new_fitness_raw[new_gbest_idx][1]
+            best_n_feat = new_fitness_raw[new_gbest_idx][2]
         
         population = new_population
         fitnesses = new_fitnesses
-
         if verbose and (i % 10 == 0 or i == max_iter - 1):
-            print(f"Iter {i+1}/{max_iter} | Best Fitness: {gbest_fitness:.5f}")
+                    print(f"Iter {i+1}/{max_iter} | Best Fitness: {gbest_fitness:.5f} | Acc: {best_acc:.4f} | Features: {best_n_feat}/{n}")
 
     return gbest, gbest_fitness
 
