@@ -16,7 +16,7 @@ g0=35
 popsize = 50
 # make random flips 
 flip_prob = 0.04
-RANDOM_SEED = 23
+RANDOM_SEED = 87
 
 def initialize_population(popsize,n):
     """makes the poulation of popsize 
@@ -43,7 +43,7 @@ def fitness_function(X_train,Y_train,
     
     # model = RandomForestClassifier(n_estimators=75, max_depth=None, random_state=2)
     model = LogisticRegression(solver='liblinear', random_state=RANDOM_SEED)
-    skf = StratifiedKFold(n_splits=3, shuffle=True, random_state=RANDOM_SEED)
+    skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=RANDOM_SEED)
     accuracies = cross_val_score(model, X_train_subset, Y_train, cv=skf, scoring='accuracy')
     acc = np.mean(accuracies) # Use the average accuracy
 
