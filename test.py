@@ -7,10 +7,11 @@ from tensorflow.keras.preprocessing import image
 from tensorflow.keras.applications import MobileNetV2, imagenet_utils
 from tensorflow.keras import layers, models
 from sklearn.model_selection import train_test_split, StratifiedKFold
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import StandardScaler, LabelEncoder
 from sklearn.model_selection import cross_val_score
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score
+from sklearn.preprocessing import LabelEncoder
 
 
 
@@ -245,8 +246,12 @@ def run_qigpso_on_images(df, popsize=20, alpha=0.8, max_iter=100, g0=35, test_si
     df: dataframe with 'image_path' and 'label'
     Returns: selected features mask, selected features array, fitness, test accuracy
     """
-    # X_features is now extracted efficiently in a batch!
     X_features, y = extract_image_features(df) 
+    
+    # 🛑 FIX: Convert string labels to numerical (0 and 1) for TensorFlow/Keras
+
+    le = LabelEncoder()
+    y = le.fit_transform(y) # Converts 'PVNS' and 'SNN' into 0s and 1s
     
     # standardize features
     scaler = StandardScaler()
