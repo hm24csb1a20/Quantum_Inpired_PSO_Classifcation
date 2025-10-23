@@ -109,8 +109,11 @@ def qigpso_feature_selection(X_train,Y_train,
                              popsize =20, 
                              alpha =0.1,
                              max_iter=int(1e2),
-                             g0=35):
-    
+                             g0=35,
+                             flip_prob=0.04,
+                             random_seed=42,
+                             verbose = False):
+    np.random.seed(random_seed)
     n = X_train.shape[1]
     population = initialize_population(popsize,n)
     # this returns tuple of [fitness,acc,nfeatures] for all the data points

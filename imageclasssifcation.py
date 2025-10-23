@@ -56,6 +56,39 @@ def make_csv(folder):
     df.to_csv(properpathofcsv,index=False)
     print(f"{folder}_path.csv created")
 
+def extractimagefeatures(df, base_model=None):
+    """Extract MobileNetV2 features from a dataframe with 'image_path' and 'label'"""
+    if base_model is None:
+        base_model = MobileNetV2(weights='imagenet', include_top=False, input_shape=(224,224,3))
+    features = []
+    labels = []
+    for _, row in df.iterrows():
+        img = image.load_img(row['image_path'], target_size=(224,224))
+        x = image.img_to_array(img)
+        x = np.expand_dims(x, axis=0)
+        x = tf.keras.applications.mobilenet_v2.preprocess_input(x)
+        feat = base_model.predict(x)
+        features.append(feat.flatten())
+        labels.append(row['label'])
+    return np.array(features), np.array(labels)
+
+def makethepathdf(folder_a,folder_b,random_seed):
+    current = os.getcwd()
+    data_root = os.path.join(current, "data")
+
+    # create CSVs for both folders if not exists
+    make_csv(folder_a)
+    make_csv(folder_b)
+
+    # load CSVs
+    df_a = pd.read_csv(os.path.join(data_root,f"{folder_a}_path.csv"))
+    df_b = pd.read_csv(os.path.join(data_root,f"{folder_b}_path.csv"))
+
+    # combine
+    df = pd.concat([df_a, df_b], ignore_index=True)
+    df = df.sample(frac=1, random_state=random_seed).reset_index(drop=True)
+    return df
+
 def imageclassifer(folder_a, folder_b, epochs=10, batch_size=16, random_seed=42):
     """
     folder_a, folder_b: folder names under ./data/
