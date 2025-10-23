@@ -11,7 +11,7 @@ import os
 import matplotlib.pyplot as plt
 import cv2
 from sklearn.model_selection import train_test_split
-
+from sklearn.metrics import classification_report, accuracy_score
 
 def whatdoesmobilenetthinkofdata():
     current = os.getcwd()
@@ -25,7 +25,7 @@ def whatdoesmobilenetthinkofdata():
     # making the image 4D for mobilenet
     resized_igm = image.img_to_array(img)
     final_image = np.expand_dims(resized_igm, axis=0)
-    final_image = mobilenet_v2.preprocess_input(final_image)
+    final_image = tf.keras.applications.mobilenet_v2.preprocess_input(final_image)
 
     print(final_image.shape)  # should now be (1, 224, 224, 3)
 
@@ -35,6 +35,7 @@ def whatdoesmobilenetthinkofdata():
     print(results)
 
 def bycv2importimage():
+    current = os.getcwd()
     # to get an image using opencv
     file_path= (os.path.join(current,"data","PVNS","Pigmented_Villonodular_Synovitis(PVNS)of_Ankle497.jpg"))
     imgg = cv2.imread(file_path)
@@ -55,38 +56,38 @@ def make_csv(folder):
     df.to_csv(properpathofcsv,index=False)
     print(f"{folder}_path.csv created")
 
-
-
-if __name__=="__main__":
-    RANDOM_SEED = 42
+def train_binary_classifier(folder_a, folder_b, epochs=10, batch_size=16, random_seed=42):
+    """
+    folder_a, folder_b: folder names under ./data/
+    returns test accuracy
+    """
     current = os.getcwd()
     data_root = os.path.join(current, "data")
-    make_csv("PVNS")
-    make_csv("SNN")
-    pvns_df = pd.read_csv(os.path.join(data_root,"PVNS_path.csv"))
-    snn_df =  pd.read_csv(os.path.join(data_root,"SNN_path.csv"))
-    
-    # making the df of paths 
-    df = pd.concat([pvns_df, snn_df], ignore_index=True)
-    # they are seperated discretly to shuffle them
-    df = df.sample(frac=1, random_state=42).reset_index(drop=True)
-    print("total images are", len(df))
-    print(df.head())
 
+    # create CSVs for both folders if not exists
+    make_csv(folder_a)
+    make_csv(folder_b)
 
-    # splitting the data
-    train_df, temp_df = train_test_split(df, test_size=0.3, random_state=42, stratify=df['label'])
+    # load CSVs
+    df_a = pd.read_csv(os.path.join(data_root,f"{folder_a}_path.csv"))
+    df_b = pd.read_csv(os.path.join(data_root,f"{folder_b}_path.csv"))
 
-    # Second split: validation vs test
-    val_df, test_df = train_test_split(temp_df, test_size=0.66, random_state=42, stratify=temp_df['label'])
+    # combine
+    df = pd.concat([df_a, df_b], ignore_index=True)
+    df = df.sample(frac=1, random_state=random_seed).reset_index(drop=True)
+    print("Total images:", len(df))
 
-    #preprocessing to make it 224,224 for CNN/mobilenetv2
+    # split
+    train_df, temp_df = train_test_split(df, test_size=0.3, random_state=random_seed, stratify=df['label'])
+    val_df, test_df = train_test_split(temp_df, test_size=0.66, random_state=random_seed, stratify=temp_df['label'])
+
+    # image generators
     train_gen = ImageDataGenerator(
-    rescale=1./255,
-    rotation_range=15,
-    width_shift_range=0.1,
-    height_shift_range=0.1,
-    horizontal_flip=True
+        rescale=1./255,
+        rotation_range=15,
+        width_shift_range=0.1,
+        height_shift_range=0.1,
+        horizontal_flip=True
     )
     test_gen = ImageDataGenerator(rescale=1./255)
 
@@ -96,7 +97,7 @@ if __name__=="__main__":
         y_col='label',
         target_size=(224,224),
         class_mode='binary',
-        batch_size=16,
+        batch_size=batch_size,
         shuffle=True
     )
     val_data = test_gen.flow_from_dataframe(
@@ -105,7 +106,7 @@ if __name__=="__main__":
         y_col='label',
         target_size=(224,224),
         class_mode='binary',
-        batch_size=16,
+        batch_size=batch_size,
         shuffle=False
     )
     test_data = test_gen.flow_from_dataframe(
@@ -114,44 +115,38 @@ if __name__=="__main__":
         y_col='label',
         target_size=(224,224),
         class_mode='binary',
-        batch_size=16,
+        batch_size=batch_size,
         shuffle=False
     )
 
-    # load MobileNetV2 wihtout top
+    # mobilenetv2 base
     base_model = MobileNetV2(weights='imagenet', include_top=False, input_shape=(224,224,3))
     base_model.trainable = False
 
-    # Add custom classification head
+    # custom head
     x = layers.GlobalAveragePooling2D()(base_model.output)
     x = layers.Dropout(0.3)(x)
     output = layers.Dense(1, activation='sigmoid')(x)
 
     model = models.Model(inputs=base_model.input, outputs=output)
-
-    # Compile
     model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
-    model.summary()
 
+    # checkpoint
     checkpoint = ModelCheckpoint("best_model.h5", save_best_only=True, monitor='val_loss')
 
-    history = model.fit(
+    # fit
+    model.fit(
         train_data,
         validation_data=val_data,
-        epochs=10,          # start small
+        epochs=epochs,
         callbacks=[checkpoint]
     )
+
+    # evaluate
     test_loss, test_acc = model.evaluate(test_data)
     print("Test accuracy:", test_acc)
 
-    # Optional: per-class metrics
-    from sklearn.metrics import classification_report
-
-    import numpy as np
-    y_true = test_data.classes
-    y_pred = (model.predict(test_data) > 0.5).astype(int)
-
-    print(classification_report(y_true, y_pred, target_names=test_data.class_indices.keys()))
+    return test_acc
 
 
 
