@@ -69,11 +69,16 @@ def fitness_function(X, y, element, alpha=0.8, golden_ratio=1.618, random_seed=4
                (1 - alpha) * (n_feat / np.sqrt(X.shape[1])) * (1 + np.sin(golden_ratio)))
                
     return fitness, acc_raw, n_feat # return the raw accuracy
-    
-def make_fitness_array(X, y, population, current_iter=None):
-    # This is much faster than an explicit loop with print statements
-    return np.array([fitness_function(X, y, ind) for ind in population])
+# changing to return the features direclty if accucary over 99
+def make_fitness_array(X, y, population,acc_threhold=0.99,verbose = False, current_iter=None):
+    results =[]
+    for idx,ind in enumerate(population):
+        fitness,acc_raw,n_feat = fitness_function(X,y,ind)
+        results.append((fitness, acc_raw, n_feat))
 
+        if(acc_raw>acc_threhold):
+            return np.array(results),idx,ind
+    return np.array(results), -1, None
 def best_worst_fitness(fitnesses):
     fbest = np.max(fitnesses)
     fworst = np.min(fitnesses)
@@ -102,8 +107,23 @@ def compute_gravity_force(max_iter, i, g0=9.8, alpha=0.8):
 def qigpso_feature_selection(X, y, popsize=20, alpha=0.8, max_iter=100, g0=35, flip_prob=0.04, random_seed=42, verbose=False):
     np.random.seed(random_seed)
     n = X.shape[1]
+    ACCURACY_THRESHOLD = 0.99
     population = initialize_population(popsize, n)
-    fitness_raw = make_fitness_array(X, y, population)
+    # making first element of the population all the features for the sake of seeting the basis
+    if popsize > 0:
+        population[0, :] = 1
+
+    
+    fitness_raw, early_exit_idx, early_exit_gbest = make_fitness_array(
+        X, y, population, ACCURACY_THRESHOLD, verbose, current_iter=0
+    )
+
+    # check if u got a really good population
+    if early_exit_idx != -1:
+        # Extract metrics from the particle that caused the early exit
+        best_fitness = fitness_raw[early_exit_idx][0]
+        return early_exit_gbest, best_fitness
+
     fitnesses = np.array([f[0] for f in fitness_raw]).flatten()
     
     pbest = population.copy()
@@ -130,7 +150,12 @@ def qigpso_feature_selection(X, y, popsize=20, alpha=0.8, max_iter=100, g0=35, f
         new_population[rand_flip] = 1 - new_population[rand_flip]
 
         
-        new_fitness_raw = make_fitness_array(X, y, new_population)
+        new_fitness_raw, early_exit_idx, early_exit_gbest = make_fitness_array(
+            X, y, new_population, ACCURACY_THRESHOLD, verbose, current_iter=i+1
+        )
+        if early_exit_idx != -1:
+            best_fitness = new_fitness_raw[early_exit_idx][0]
+            return early_exit_gbest, best_fitness # Return the particle that met the criteria
         new_fitnesses = np.array([f[0] for f in new_fitness_raw]).flatten()
         
         improved = new_fitnesses > pbest_fitness
