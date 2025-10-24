@@ -34,6 +34,7 @@ def create_nn_classifier(input_dim, random_seed):
     return model
 
 def fitness_function(X, y, element, alpha=0.8, golden_ratio=1.618, random_seed=42):
+    
     if element is not None:
         X_subset = X[:, element.astype(bool)]
         n_feat = np.sum(element)
@@ -45,21 +46,29 @@ def fitness_function(X, y, element, alpha=0.8, golden_ratio=1.618, random_seed=4
     if X_subset.shape[1] == 0:
         return -100.0, 1e-10, 0 
 
-    # 1. Split the data for single-run evaluation (80% train, 20% validation)
+    # 1. Split the data for evaluation (80% train, 20% validation)
     X_train_fit, X_val_fit, y_train_fit, y_val_fit = train_test_split(
         X_subset, y, test_size=0.2, random_state=random_seed, stratify=y
     )
     
-    # 2. Create and train the FAST classifier (Random Forest)
-    # 🛑 FIX: Use RandomForestClassifier for much faster evaluation
-    model = LogisticRegression(solver='liblinear', random_state=random_seed)
+    # 2. Create and train the Keras classifier on the selected features
+    input_dim = X_train_fit.shape[1]
+    model = create_nn_classifier(input_dim, random_seed)
     
     # Train the model 
-    model.fit(X_train_fit, y_train_fit)
+    # Use few epochs for speed inside the search loop
+    model.fit(X_train_fit, y_train_fit, epochs=10, batch_size=32, verbose=0) 
     
     # 3. Evaluate on the validation set
-    y_pred = model.predict(X_val_fit)
-    acc_raw = accuracy_score(y_val_fit, y_pred) # Calculate accuracy
+    
+    # 🟢 FIX: Get continuous predictions
+    y_pred_proba = model.predict(X_val_fit, verbose=0)
+    
+    # 🟢 FIX: Convert continuous predictions to discrete binary (0 or 1)
+    y_pred = (y_pred_proba > 0.5).astype(int).flatten()
+
+    # Calculate raw accuracy using the correctly thresholded predictions
+    acc_raw = accuracy_score(y_val_fit, y_pred) 
     
     # Ensure acc is not zero for log
     acc = max(acc_raw, 1e-10) 
@@ -68,7 +77,7 @@ def fitness_function(X, y, element, alpha=0.8, golden_ratio=1.618, random_seed=4
     fitness = (alpha * np.log(acc + 1e-3) - 
                (1 - alpha) * (n_feat / np.sqrt(X.shape[1])) * (1 + np.sin(golden_ratio)))
                
-    return fitness, acc_raw, n_feat # return the raw accuracy
+    return fitness, acc_raw, n_feat
 # changing to return the features direclty if accucary over 99
 def make_fitness_array(X, y, population,acc_threhold=0.99,verbose = False, current_iter=None):
     results =[]
