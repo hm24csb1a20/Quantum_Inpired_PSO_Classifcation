@@ -8,8 +8,8 @@ from tensorflow.keras import layers, models
 from tensorflow.keras.models import load_model
 from tensorflow.keras.utils import to_categorical  # Added for NN label preparation
 from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import StandardScaler, LabelEncoder
-# CRITICAL IMPORT: Keeping Logistic Regression for faster fitness evaluation
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score
 
@@ -37,59 +37,47 @@ def create_nn_classifier(input_shape, num_classes, random_seed):
         layers.Dropout(0.5),
         layers.Dense(num_classes, activation='softmax')
     ])
-    model.compile(optimizer='adam', 
-                  loss='categorical_crossentropy', 
-                  metrics='accuracy'])
+    model.compile(optimizer='adam',
+              loss='categorical_crossentropy',
+              metrics=['accuracy'])
     return model
 
 # NOTE: The previous `create_final_classifier` (Logistic Regression) has been removed.
 
-def fitness_function(X, y, element, alpha=0.8, golden_ratio=1.618, random_seed=42):
-    
-    if element is not None:
-        X_subset = X[:, element.astype(bool)]
-        n_feat = np.sum(element)
-    else:
-        X_subset = X
-        n_feat = X.shape[1]
+def fitness_function(features, X, y, alpha=4.0, gamma=2.0):
+    """
+    features: binary mask of selected features (list or np.array)
+    X, y: dataset
+    alpha, gamma: weight factors (higher values amplify differences)
+    """
+    # ensure at least one feature is selected
+    if np.sum(features) == 0:
+        return 0
 
-    # Handle case with no features selected
-    if X_subset.shape[1] == 0:
-        return -100.0, 1e-10, 0 
+    X_selected = X[:, np.where(features == 1)[0]]
 
-    # 1. Split the data for evaluation (80% train, 20% validation)
-    X_train_fit, X_val_fit, y_train_fit, y_val_fit = train_test_split(
-        X_subset, y, test_size=0.2, random_state=random_seed, stratify=y
+    # split data
+    X_train, X_test, y_train, y_test = train_test_split(
+        X_selected, y, test_size=0.2, random_state=42
     )
-    
-    # 2. Use Logistic Regression for fast fitness calculation
-    local_scaler = StandardScaler()
-    X_train_scaled = local_scaler.fit_transform(X_train_fit)
-    X_val_scaled = local_scaler.transform(X_val_fit)
-    
-    clf = LogisticRegression(solver='liblinear', random_state=random_seed, max_iter=20) 
-    # Use fewer iterations inside the fitness loop for speed
-    
-    # Train the model 
-    clf.fit(X_train_scaled, y_train_fit) 
-    
-    # 3. Evaluate on the validation set
-    y_pred = clf.predict(X_val_scaled)
-    
-    # Calculate raw accuracy 
-    acc_raw = accuracy_score(y_val_fit, y_pred) 
-    
-    acc = max(acc_raw, 1e-10) 
-    
-    # 4. Calculate final fitness
-    golden_ratio = 1.618
-    fitness = (alpha * np.log(acc + 1e-3) - 
-               (1 - alpha) * (n_feat / np.sqrt(X.shape[1])) * (1 + np.sin(golden_ratio)))
-               
-    # Explicitly clean up local variables
-    del X_train_fit, X_val_fit, y_train_fit, y_val_fit, local_scaler, clf
-               
-    return fitness, acc_raw, n_feat
+
+    # use a stronger classifier
+    model = RandomForestClassifier(
+        n_estimators=150,
+        max_depth=None,
+        random_state=42,
+        n_jobs=-1
+    )
+    model.fit(X_train, y_train)
+    acc = accuracy_score(y_test, model.predict(X_test))
+
+    # feature ratio (smaller is better)
+    feature_ratio = np.sum(features) / X.shape[1]
+
+    # 🔥 multiplicative fitness
+    fitness = (acc ** alpha) * ((1 - feature_ratio) ** gamma)
+
+    return fitness
 
 def make_fitness_array(X, y, population,acc_threhold=0.99,verbose = False, current_iter=None):
     results =[]
@@ -429,7 +417,7 @@ if(__name__=="__main__"):
 
     random_seed =42
     
-    folder_names = ["PVNS", "SNN", "Gerd", "Polyp"] 
+    folder_names = ["Gerd","Gerd_Normal","Polyp","Polyp_Normal"] 
 
     try:
         # Pass max_images=1000 to sample the large dataset for stable execution
