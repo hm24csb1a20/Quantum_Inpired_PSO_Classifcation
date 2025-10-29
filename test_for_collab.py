@@ -316,7 +316,7 @@ def makethepathdf(folder_names, random_seed, max_images=None):
     If max_images is provided, the function samples up to that many total images.
     """
     current = os.getcwd()
-    data_root = os.path.join(current, DATA_ROOT_DIR)
+    data_root = os.path.join(current,"valid" DATA_ROOT_DIR)
 
     all_dfs = []
     
